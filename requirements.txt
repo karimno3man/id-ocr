@@ -1,0 +1,10 @@
+# Install CUDA torch first (never the CPU wheel from PyPI):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# Then: pip install -r requirements.txt
+ultralytics>=8.3.0
+opencv-python>=4.10.0
+matplotlib>=3.9.0
+pyyaml>=6.0
+pillow>=10.0.0
+ipykernel>=6.29.0
+tqdm>=4.66.0

@@ -1,0 +1,22 @@
+path: C:\Users\LOQ\Desktop\I_School\ID-OCR\Thndr-National-Card.v4-v4.yolov8
+train: train/images
+val: valid/images
+test: test/images
+nc: 16
+names:
+- Add1
+- Add2
+- Back
+- ExpDate
+- First_Name
+- Front
+- Gender
+- HusbandName
+- ID
+- IssueDate
+- Job1
+- Job2
+- Last_Name
+- Religion
+- Serial_Num
+- Status
