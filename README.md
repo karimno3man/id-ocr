@@ -20,7 +20,9 @@ ID-OCR/
     decode_nid.py
   Thndr-National-Card.v4-v4.yolov8/   # local, gitignored
   cro4.v1-8.yolov8/                  # local, gitignored
-  runs/                               # local, gitignored
+  runs/                               # local, gitignored (YOLO outputs per run)
+  mlruns/                             # local, gitignored (MLflow experiment store)
+  tracking/mlflow_setup.py            # MLflow + Ultralytics wiring
 ```
 
 ## Setup
@@ -44,12 +46,29 @@ Download from Roboflow Universe and place in the repo root (not committed to git
 
 Export each dataset in **YOLOv8** format from Roboflow before training.
 
-Trained weights land in `runs/nid_localize/` and `runs/nid_digits/` after notebook training.
+Trained weights land in `runs/<run_name>/weights/best.pt` after each notebook training run. Each train creates a timestamped run folder and logs to MLflow.
+
+## Experiment tracking (MLflow)
+
+Training notebooks call [`tracking/mlflow_setup.py`](tracking/mlflow_setup.py) before `model.train()`. Ultralytics logs parameters, per-epoch metrics, and artifacts (weights, plots, `results.csv`) to `mlruns/`.
+
+Experiments:
+
+- `nid-localization` — [`train_nid_yolo.ipynb`](train_nid_yolo.ipynb)
+- `nid-digits` — [`train_nid_digits.ipynb`](train_nid_digits.ipynb)
+
+View and compare runs:
+
+```powershell
+mlflow ui --backend-store-uri mlruns
+```
+
+Open http://127.0.0.1:5000 in your browser. `mlruns/` is gitignored (large artifacts stay local).
 
 ## Train
 
-1. `train_nid_yolo.ipynb` — localization on Thndr → `runs/nid_localize/weights/best.pt`
-2. `train_nid_digits.ipynb` — digits on cro4 → `runs/nid_digits/weights/best.pt`
+1. `train_nid_yolo.ipynb` — localization on Thndr → `runs/nid_localize_<timestamp>/weights/best.pt`
+2. `train_nid_digits.ipynb` — digits on cro4 → `runs/nid_digits_<timestamp>/weights/best.pt`
 
 Digit training uses `fliplr=0` (digits are left-to-right).
 

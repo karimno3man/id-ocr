@@ -1,6 +1,7 @@
 .venv/
 venv/
 runs/
+mlruns/
 crops/
 __pycache__/
 .ipynb_checkpoints/
