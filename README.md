@@ -37,10 +37,12 @@ In Cursor/VS Code, select the `.venv` kernel before running notebooks.
 
 ## Datasets (local only)
 
-Download and place in the repo root (not committed to git):
+Download from Roboflow Universe and place in the repo root (not committed to git):
 
-- **Thndr-National-Card.v4-v4.yolov8** — card field localization (16 classes, train the ID box detector)
-- **cro4.v1-8.yolov8** — per-digit boxes on ID number strips (10 classes `0–9`, 80/10/10 split)
+- **[Thndr National Card](https://universe.roboflow.com/thndr-ovgh9/thndr-national-card/browse?queryText=class%3AID&pageSize=50&startingIndex=0&browseQuery=true)** → folder `Thndr-National-Card.v4-v4.yolov8` — card field localization (16 classes; use the **ID** class for the number field)
+- **[cro4](https://universe.roboflow.com/re8/cro4)** → folder `cro4.v1-8.yolov8` — per-digit boxes on ID number strips (10 classes `0–9`, 80/10/10 split)
+
+Export each dataset in **YOLOv8** format from Roboflow before training.
 
 Trained weights land in `runs/nid_localize/` and `runs/nid_digits/` after notebook training.
 
