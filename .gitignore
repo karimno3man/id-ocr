@@ -5,18 +5,18 @@ crops/
 __pycache__/
 .ipynb_checkpoints/
 *.pt
+!yolo+ocr/weights/best_snapshot.pt
+!yolo+ocr/weights/digit_best.pt
 *.onnx
 *.engine
-weights/
+/weights/
 
 Thndr-National-Card.v4-v4.yolov8/
 cro4.v1-8.yolov8/
 yolo+ocr/crops/
 yolo+ocr/real-samples/
 yolo+ocr/*.jsonl
-yolo+ocr/weights/
 *.cache
-
 .env
 .env.*
 *.pem
