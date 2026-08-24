@@ -21,7 +21,8 @@ ID-OCR/
   Thndr-National-Card.v4-v4.yolov8/   # local, gitignored
   cro4.v1-8.yolov8/                  # local, gitignored
   runs/                               # local, gitignored (YOLO outputs per run)
-  mlruns/                             # local, gitignored (MLflow experiment store)
+  mlflow.db                           # local, gitignored (MLflow SQLite store)
+  mlartifacts/                        # local, gitignored (MLflow run artifacts)
   tracking/mlflow_setup.py            # MLflow + Ultralytics wiring
 ```
 
@@ -50,20 +51,20 @@ Trained weights land in `runs/<run_name>/weights/best.pt` after each notebook tr
 
 ## Experiment tracking (MLflow)
 
-Training notebooks call [`tracking/mlflow_setup.py`](tracking/mlflow_setup.py) before `model.train()`. Ultralytics logs parameters, per-epoch metrics, and artifacts (weights, plots, `results.csv`) to `mlruns/`.
+Training notebooks call [`tracking/mlflow_setup.py`](tracking/mlflow_setup.py) before `model.train()`. Ultralytics logs parameters, per-epoch metrics, and artifacts (weights, plots, `results.csv`) to `mlflow.db` + `mlartifacts/`.
 
 Experiments:
 
 - `nid-localization` — [`train_nid_yolo.ipynb`](train_nid_yolo.ipynb)
 - `nid-digits` — [`train_nid_digits.ipynb`](train_nid_digits.ipynb)
 
-View and compare runs:
+View and compare runs (use the project venv — MLflow 3 no longer supports the old `mlruns/` file store):
 
 ```powershell
-mlflow ui --backend-store-uri mlruns
+.\.venv\Scripts\mlflow ui --backend-store-uri sqlite:///mlflow.db --default-artifact-root mlartifacts
 ```
 
-Open http://127.0.0.1:5000 in your browser. `mlruns/` is gitignored (large artifacts stay local).
+Open http://127.0.0.1:5000 in your browser. `mlflow.db` and `mlartifacts/` are gitignored.
 
 ## Train
 

@@ -2,6 +2,8 @@
 venv/
 runs/
 mlruns/
+mlflow.db
+mlartifacts/
 crops/
 __pycache__/
 .ipynb_checkpoints/
