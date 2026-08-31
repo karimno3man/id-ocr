@@ -1,5 +1,8 @@
 # Install CUDA torch first (never the CPU wheel from PyPI):
 #   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# Install CPU PaddlePaddle before the rest (do not use paddlepaddle-gpu):
+#   pip install paddlepaddle==3.2.2
+#   pip install "paddlex[ocr-core]"
 # Then: pip install -r requirements.txt
 ultralytics>=8.3.0
 opencv-python>=4.10.0
@@ -9,3 +12,8 @@ pillow>=10.0.0
 ipykernel>=6.29.0
 tqdm>=4.66.0
 mlflow>=2.18.0
+paddlepaddle==3.2.2
+paddleocr>=3.0,<3.4
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12

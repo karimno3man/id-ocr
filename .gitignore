@@ -19,6 +19,7 @@ cro4.v1-8.yolov8/
 yolo+ocr/crops/
 yolo+ocr/real-samples/
 yolo+ocr/*.jsonl
+web/uploads/
 *.cache
 .env
 .env.*

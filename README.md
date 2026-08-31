@@ -1,10 +1,11 @@
 # Egyptian National ID OCR
 
-Two-stage YOLO pipeline for reading the 14-digit national ID number on Egyptian ID cards.
+YOLO localization + field OCR for Egyptian national ID cards.
 
-1. **Localization** — find the ID number field on the card (`train_nid_yolo.ipynb`)
-2. **Digit detection** — detect each Eastern Arabic digit `٠–٩` in the crop (`train_nid_digits.ipynb`)
-3. **Decode** — parse birth date, governorate, gender from the 14-digit string (`yolo+ocr/decode_nid.py`)
+1. **Localization** — find all 16 card fields (`train_nid_yolo.ipynb`)
+2. **ID digits** — detect each Eastern Arabic digit `٠–٩` in the ID crop (`train_nid_digits.ipynb`)
+3. **Text fields** — read the other 15 fields with PaddleOCR Arabic (`yolo+ocr/field_ocr.py`)
+4. **Decode** — parse birth date, governorate, gender from the 14-digit string (`yolo+ocr/decode_nid.py`)
 
 ## Layout
 
@@ -15,9 +16,14 @@ ID-OCR/
   nid_localization.yaml
   nid_digits.yaml
   yolo+ocr/
-    run_pipeline.py          # full card inference
-    digit_nid.py             # crops-only inference
+    run_pipeline.py          # full card inference (all 16 fields)
+    card_extractor.py        # shared extractor for CLI + web
+    field_ocr.py             # PaddleOCR wrapper for text fields
+    digit_nid.py             # ID crops-only digit inference
     decode_nid.py
+  web/
+    app.py                   # localhost FastAPI UI server
+    static/                  # iSchool-branded front/back upload UI
   Thndr-National-Card.v4-v4.yolov8/   # local, gitignored
   cro4.v1-8.yolov8/                  # local, gitignored
   runs/                               # local, gitignored (YOLO outputs per run)
@@ -33,10 +39,20 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -U pip
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+pip install paddlepaddle==3.2.2
+pip install "paddlex[ocr-core]"
 pip install -r requirements.txt
 ```
 
 In Cursor/VS Code, select the `.venv` kernel before running notebooks.
+
+If PaddleOCR crashes with `ConvertPirAttribute2RuntimeAttribute` / `onednn_instruction.cc`, reinstall the pinned CPU stack (PaddlePaddle 3.3.x breaks PP-OCRv5 on CPU):
+
+```powershell
+pip install paddlepaddle==3.2.2
+pip install "paddlex[ocr-core]"
+pip install "paddleocr>=3.0,<3.4"
+```
 
 ## Datasets (local only)
 
@@ -89,16 +105,32 @@ Digit training uses `fliplr=0` (digits are left-to-right).
 
 ## Infer
 
-Full card (detect ID box, crop, read digits, decode):
+Full card (detect all 16 fields, digit-read `ID`, PaddleOCR the other 15):
 
 ```powershell
 python yolo+ocr/run_pipeline.py --source yolo+ocr/real-samples --device 0
 ```
 
-ID crops only:
+ID crops only (digit YOLO, unchanged):
 
 ```powershell
 python yolo+ocr/digit_nid.py --input yolo+ocr/crops/pred/ID --device 0
 ```
 
-Outputs are JSONL files under `yolo+ocr/` (`results.jsonl`, `digit_results.jsonl`).
+`run_pipeline.py` writes `yolo+ocr/results.jsonl` with a `fields` map (one entry per detected class), plus top-level ID keys for backward compatibility. Crops land under `yolo+ocr/crops/pred/<ClassName>/`. `digit_nid.py` still writes `yolo+ocr/digit_results.jsonl`.
+
+## Web UI
+
+Local iSchool-branded UI with front/back upload and 16 editable fields:
+
+```powershell
+uvicorn web.app:app --reload --host 127.0.0.1 --port 8000
+```
+
+Open http://127.0.0.1:8000 — upload the front (required) and back (optional), click **Extract fields**, then review or fill in any missing values.
+
+Each extraction saves artifacts under `web/uploads/<run_id>/`:
+
+- `front.jpg` / `back.jpg` — original uploads
+- `front_annotated.jpg` / `back_annotated.jpg` — detections drawn on the card
+- `crops/front/<Class>.jpg` and `crops/back/<Class>.jpg` — per-field crops

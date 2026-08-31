@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iSchool — National ID OCR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <img
+        src="/static/assets/ischool-logo.png"
+        alt="iSchool"
+        class="logo"
+      />
+      <div>
+        <h1>National ID OCR</h1>
+        <p class="subtitle">Upload both sides of the card, then review and edit the extracted fields.</p>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="upload-row">
+        <label class="upload-card" id="front-drop">
+          <input type="file" id="front-input" accept="image/*" hidden />
+          <div class="upload-inner" id="front-preview-wrap">
+            <span class="upload-icon">+</span>
+            <strong>Upload front side of the card</strong>
+            <span class="upload-hint">Click or drag an image here</span>
+          </div>
+        </label>
+
+        <label class="upload-card" id="back-drop">
+          <input type="file" id="back-input" accept="image/*" hidden />
+          <div class="upload-inner" id="back-preview-wrap">
+            <span class="upload-icon">+</span>
+            <strong>Upload back side of the card</strong>
+            <span class="upload-hint">Click or drag an image here</span>
+          </div>
+        </label>
+      </section>
+
+      <div class="actions">
+        <button type="button" id="extract-btn" class="btn-primary" disabled>
+          Extract fields
+        </button>
+        <p id="status" class="status" aria-live="polite"></p>
+      </div>
+
+      <section id="artifacts-section" class="artifacts hidden" aria-live="polite">
+        <h2 class="artifacts-title">Saved images</h2>
+        <p id="artifacts-run" class="artifacts-run"></p>
+        <div class="artifact-row">
+          <figure class="artifact-card">
+            <figcaption>Front</figcaption>
+            <a id="front-annotated-link" href="#" target="_blank" rel="noopener">
+              <img id="front-annotated" alt="Front card" />
+            </a>
+          </figure>
+          <figure class="artifact-card" id="back-artifact-card">
+            <figcaption>Back</figcaption>
+            <a id="back-annotated-link" href="#" target="_blank" rel="noopener">
+              <img id="back-annotated" alt="Back card" />
+            </a>
+          </figure>
+        </div>
+      </section>
+
+      <form id="fields-form" class="fields-form" autocomplete="off">
+        <section class="field-group">
+          <h2>Identity</h2>
+          <div class="field-grid">
+            <div class="field" data-field="First_Name">
+              <label for="First_Name">First name</label>
+              <input id="First_Name" name="First_Name" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="Last_Name">
+              <label for="Last_Name">Last name</label>
+              <input id="Last_Name" name="Last_Name" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="HusbandName">
+              <label for="HusbandName">Husband name</label>
+              <input id="HusbandName" name="HusbandName" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="Gender">
+              <label for="Gender">Gender</label>
+              <input id="Gender" name="Gender" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="Religion">
+              <label for="Religion">Religion</label>
+              <input id="Religion" name="Religion" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="Status">
+              <label for="Status">Status</label>
+              <input id="Status" name="Status" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="field-group">
+          <h2>ID number</h2>
+          <div class="field-grid">
+            <div class="field field-wide" data-field="ID">
+              <label for="ID">National ID (14 digits)</label>
+              <input id="ID" name="ID" type="text" dir="ltr" inputmode="numeric" />
+              <span class="helper" id="nid-decode"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="field-group">
+          <h2>Dates &amp; serial</h2>
+          <div class="field-grid">
+            <div class="field" data-field="IssueDate">
+              <label for="IssueDate">Issue date</label>
+              <input id="IssueDate" name="IssueDate" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="ExpDate">
+              <label for="ExpDate">Expiry date</label>
+              <input id="ExpDate" name="ExpDate" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="Serial_Num">
+              <label for="Serial_Num">Serial number</label>
+              <input id="Serial_Num" name="Serial_Num" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="field-group">
+          <h2>Address</h2>
+          <div class="field-grid">
+            <div class="field field-wide" data-field="Add1">
+              <label for="Add1">Address line 1</label>
+              <input id="Add1" name="Add1" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field field-wide" data-field="Add2">
+              <label for="Add2">Address line 2</label>
+              <input id="Add2" name="Add2" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="field-group">
+          <h2>Employment</h2>
+          <div class="field-grid">
+            <div class="field" data-field="Job1">
+              <label for="Job1">Job 1</label>
+              <input id="Job1" name="Job1" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="Job2">
+              <label for="Job2">Job 2</label>
+              <input id="Job2" name="Job2" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="field-group">
+          <h2>Card sides</h2>
+          <div class="field-grid">
+            <div class="field" data-field="Front">
+              <label for="Front">Front</label>
+              <input id="Front" name="Front" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+            <div class="field" data-field="Back">
+              <label for="Back">Back</label>
+              <input id="Back" name="Back" type="text" dir="auto" />
+              <span class="helper"></span>
+            </div>
+          </div>
+        </section>
+      </form>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
