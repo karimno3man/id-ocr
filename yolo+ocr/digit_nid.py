@@ -21,6 +21,7 @@ if str(HERE) not in sys.path:
 from decode_nid import NidDecode, decode_nid
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
+NID_LEN = 14
 
 DEFAULT_INPUT = HERE / "crops" / "pred" / "ID"
 DEFAULT_OUT = HERE / "digit_results.jsonl"
@@ -89,13 +90,28 @@ def pred_nid_from_result(
     return stitched or None, len(digits), digits
 
 
+def decode_digit_rows(
+    digit_rows: list[dict[str, Any]],
+) -> tuple[str, NidDecode | None, bool]:
+    stitched = "".join(item["digit"] for item in digit_rows)
+    n_boxes = len(digit_rows)
+    if n_boxes < NID_LEN:
+        return stitched, None, False
+
+    trimmed = n_boxes > NID_LEN
+    decoded = decode_nid(stitched[-NID_LEN:])
+    if not decoded.is_valid_structure:
+        return stitched, None, trimmed
+    return stitched, decoded, trimmed
+
+
 def read_nid_from_crop(
     model: YOLO,
     image: np.ndarray,
     conf: float = 0.25,
     imgsz: int = 640,
     device: str | int = 0,
-) -> tuple[list[dict[str, Any]], str, NidDecode | None]:
+) -> tuple[list[dict[str, Any]], str, NidDecode | None, bool]:
     result = model.predict(
         source=image,
         imgsz=imgsz,
@@ -103,12 +119,9 @@ def read_nid_from_crop(
         device=device,
         verbose=False,
     )[0]
-    digits, n_boxes, digit_rows = pred_nid_from_result(result, conf=conf)
-    stitched = digits or ""
-    decoded = decode_nid(stitched) if n_boxes == 14 else None
-    if decoded is not None and not decoded.is_valid_structure:
-        decoded = None
-    return digit_rows, stitched, decoded
+    _, _, digit_rows = pred_nid_from_result(result, conf=conf)
+    stitched, decoded, trimmed = decode_digit_rows(digit_rows)
+    return digit_rows, stitched, decoded, trimmed
 
 
 def iter_images(root: Path) -> list[Path]:
@@ -159,7 +172,7 @@ def main() -> None:
                 print(f"{path.name}\tUNREADABLE")
                 continue
 
-            digit_rows, stitched, decoded = read_nid_from_crop(
+            digit_rows, stitched, decoded, trimmed = read_nid_from_crop(
                 model,
                 image,
                 conf=args.conf,
@@ -172,12 +185,14 @@ def main() -> None:
                 "path": str(path),
                 "nid_digits": stitched,
                 "n_boxes": len(digit_rows),
+                "trimmed": trimmed,
                 "digits": digit_rows,
                 "nid": None if decoded is None else decoded.to_dict(),
             }
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
             nid_value = "-" if decoded is None else decoded.nid
-            print(f"{path.name}\tboxes={len(digit_rows)}\t{nid_value}\t{stitched}")
+            trim_flag = "\ttrim" if trimmed else ""
+            print(f"{path.name}\tboxes={len(digit_rows)}{trim_flag}\t{nid_value}\t{stitched}")
 
     print(f"Decoded {n_ok}/{len(images)} NIDs -> {args.out}")
 

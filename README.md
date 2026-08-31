@@ -51,12 +51,26 @@ Trained weights land in `runs/<run_name>/weights/best.pt` after each notebook tr
 
 ## Experiment tracking (MLflow)
 
-Training notebooks call [`tracking/mlflow_setup.py`](tracking/mlflow_setup.py) before `model.train()`. Ultralytics logs parameters, per-epoch metrics, and artifacts (weights, plots, `results.csv`) to `mlflow.db` + `mlartifacts/`.
+Training notebooks call [`tracking/mlflow_setup.py`](tracking/mlflow_setup.py) before `model.train()` and register supplemental callbacks from [`tracking/yolo_mlflow.py`](tracking/yolo_mlflow.py). Each live run logs:
+
+- Ultralytics MLflow callback: params, train/val losses, LR, mAP (step = `trainer.epoch`, 0-based)
+- Supplemental callback: `time` only (avoids duplicate metrics that caused stair-step charts)
+- Full `runs/<run_name>/` tree at end of training
+
+Backfill (`backfill_mlflow_runs`) logs every `results.csv` column once from disk.
 
 Experiments:
 
 - `nid-localization` — [`train_nid_yolo.ipynb`](train_nid_yolo.ipynb)
 - `nid-digits` — [`train_nid_digits.ipynb`](train_nid_digits.ipynb)
+
+Backfill historical runs that were trained before MLflow was enabled:
+
+```powershell
+.\.venv\Scripts\python -m tracking.backfill_mlflow_runs
+```
+
+This logs `runs/nid_localize` (47 epochs) and `runs/nid_digits` (5 epochs, interrupted) into the experiments above. Use `--force` to re-log if a run name already exists.
 
 View and compare runs (use the project venv — MLflow 3 no longer supports the old `mlruns/` file store):
 

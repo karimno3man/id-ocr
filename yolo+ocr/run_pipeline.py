@@ -20,6 +20,7 @@ if str(HERE) not in sys.path:
 
 from digit_nid import (
     IMAGE_SUFFIXES,
+    NID_LEN,
     load_digit_model,
     read_nid_from_crop,
     resolve_digit_weights,
@@ -30,8 +31,9 @@ DEFAULT_SOURCE = HERE / "real-samples"
 DEFAULT_CROPS = HERE / "crops" / "pred" / "ID"
 DEFAULT_OUT = HERE / "results.jsonl"
 DEFAULT_YAML = ROOT / "nid_localization.yaml"
+DEFAULT_WEIGHTS = ROOT / "runs" / "nid_localize" / "weights" / "best.pt"
 WEIGHT_CANDIDATES = (
-    ROOT / "runs" / "nid_localize" / "weights" / "best.pt",
+    DEFAULT_WEIGHTS,
     ROOT / "runs" / "nid_localize" / "weights" / "best_snapshot.pt",
     ROOT / "runs" / "nid_localize" / "weights" / "last.pt",
     HERE / "weights" / "best_snapshot.pt",
@@ -65,14 +67,55 @@ def snapshot_weights(src: Path) -> Path:
     return dest
 
 
-def pad_xyxy(xyxy: np.ndarray, width: int, height: int, pad: float) -> tuple[int, int, int, int]:
-    x1, y1, x2, y2 = xyxy.tolist()
+def clip_xyxy(
+    xyxy: np.ndarray,
+    width: int,
+    height: int,
+    pad: float = 0.0,
+    pad_x: float | None = None,
+    pad_y: float | None = None,
+    pad_left: float | None = None,
+    pad_right: float | None = None,
+) -> tuple[int, int, int, int]:
+    x1, y1, x2, y2 = (float(v) for v in xyxy.tolist())
     bw, bh = x2 - x1, y2 - y1
-    x1 = max(0, int(x1 - bw * pad))
-    y1 = max(0, int(y1 - bh * pad))
-    x2 = min(width, int(x2 + bw * pad))
-    y2 = min(height, int(y2 + bh * pad))
+    px = pad if pad_x is None else pad_x
+    py = pad if pad_y is None else pad_y
+    pl = px if pad_left is None else pad_left
+    pr = px if pad_right is None else pad_right
+    x1 = max(0, int(round(x1 - bw * pl)))
+    y1 = max(0, int(round(y1 - bh * py)))
+    x2 = min(width, int(round(x2 + bw * pr)))
+    y2 = min(height, int(round(y2 + bh * py)))
+    x1 = min(x1, width - 1)
+    y1 = min(y1, height - 1)
+    x2 = max(x1 + 1, x2)
+    y2 = max(y1 + 1, y2)
     return x1, y1, x2, y2
+
+
+def crop_id_box(
+    image: np.ndarray,
+    xyxy: np.ndarray,
+    pad: float = 0.0,
+    pad_x: float | None = None,
+    pad_y: float | None = None,
+    pad_left: float | None = None,
+    pad_right: float | None = None,
+) -> tuple[tuple[int, int, int, int], np.ndarray]:
+    height, width = image.shape[:2]
+    box = clip_xyxy(
+        xyxy,
+        width,
+        height,
+        pad=pad,
+        pad_x=pad_x,
+        pad_y=pad_y,
+        pad_left=pad_left,
+        pad_right=pad_right,
+    )
+    x1, y1, x2, y2 = box
+    return box, image[y1:y2, x1:x2]
 
 
 def iter_images(root: Path) -> list[Path]:
@@ -97,7 +140,7 @@ def best_id_box(result, class_id: int) -> tuple[np.ndarray, float] | None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Detect the NID box, read digits with YOLO, and decode 14 digits.")
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
-    parser.add_argument("--weights", type=Path, default=None, help="Card localization YOLO weights")
+    parser.add_argument("--weights", type=Path, default=DEFAULT_WEIGHTS, help="Card localization YOLO weights")
     parser.add_argument("--digit-weights", type=Path, default=None, help="Digit YOLO weights")
     parser.add_argument("--data", type=Path, default=DEFAULT_YAML)
     parser.add_argument("--crops", type=Path, default=DEFAULT_CROPS)
@@ -106,7 +149,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--digit-imgsz", type=int, default=640, help="Digit YOLO inference size")
     parser.add_argument("--conf", type=float, default=0.2, help="Localization confidence")
     parser.add_argument("--digit-conf", type=float, default=0.25, help="Digit detection confidence")
-    parser.add_argument("--pad", type=float, default=0.15)
+    parser.add_argument(
+        "--pad",
+        type=float,
+        default=0.05,
+        help="Grow the ID box by this fraction on the left/top/bottom (0.05 ≈ half a digit)",
+    )
+    parser.add_argument(
+        "--right-pad",
+        type=float,
+        default=1.0,
+        help="Right-side pad on the first crop (fraction of ID box width; clamped to the image edge)",
+    )
+    parser.add_argument(
+        "--retry-pad",
+        type=float,
+        default=0.07,
+        help="Extra left-side pad per missing digit; retries until 14 boxes or the crop cannot grow",
+    )
     parser.add_argument("--device", default="cpu", help="Inference device for both YOLO models")
     parser.add_argument("--no-snapshot", action="store_true", help="Read weights in place; skip copy")
     return parser.parse_args()
@@ -167,23 +227,50 @@ def main() -> None:
                 continue
 
             xyxy, conf = box
-            h, w = image.shape[:2]
-            pad = args.pad
-            if float(xyxy[3] - xyxy[1]) < 80:
-                pad = max(pad, 0.4)
-            x1, y1, x2, y2 = pad_xyxy(xyxy, w, h, pad)
-            crop = image[y1:y2, x1:x2]
-            crop_path = args.crops / f"{path.stem}.jpg"
-            cv2.imwrite(str(crop_path), crop)
+            (x1, y1, x2, y2), crop = crop_id_box(
+                image,
+                xyxy,
+                pad=args.pad,
+                pad_left=args.pad,
+                pad_right=args.right_pad,
+                pad_y=args.pad,
+            )
             n_det += 1
 
-            digit_rows, stitched, decoded = read_nid_from_crop(
+            digit_rows, stitched, decoded, trimmed = read_nid_from_crop(
                 digit_model,
                 crop,
                 conf=args.digit_conf,
                 imgsz=args.digit_imgsz,
                 device=args.device,
             )
+            n_retries = 0
+            steps = 0
+            while len(digit_rows) < NID_LEN and args.retry_pad > 0:
+                steps += NID_LEN - len(digit_rows)
+                retry_box, retry_crop = crop_id_box(
+                    image,
+                    xyxy,
+                    pad=args.pad,
+                    pad_left=args.pad + steps * args.retry_pad,
+                    pad_right=args.right_pad,
+                    pad_y=args.pad,
+                )
+                if retry_box == (x1, y1, x2, y2):
+                    break
+                n_retries += 1
+                (x1, y1, x2, y2), crop = retry_box, retry_crop
+                digit_rows, stitched, decoded, trimmed = read_nid_from_crop(
+                    digit_model,
+                    crop,
+                    conf=args.digit_conf,
+                    imgsz=args.digit_imgsz,
+                    device=args.device,
+                )
+            retried = n_retries > 0
+
+            crop_path = args.crops / f"{path.stem}.jpg"
+            cv2.imwrite(str(crop_path), crop)
             if decoded is not None:
                 n_nid += 1
             record = {
@@ -193,12 +280,23 @@ def main() -> None:
                 "box_xyxy": [x1, y1, x2, y2],
                 "ocr_text": stitched,
                 "n_boxes": len(digit_rows),
+                "retried": retried,
+                "n_retries": n_retries,
+                "trimmed": trimmed,
                 "digits": digit_rows,
                 "nid": None if decoded is None else decoded.to_dict(),
             }
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
             nid_value = "-" if decoded is None else decoded.nid
-            print(f"{path.name}\tconf={conf:.3f}\tboxes={len(digit_rows)}\t{nid_value}\t{stitched}")
+            flags = []
+            if n_retries == 1:
+                flags.append("retry")
+            elif n_retries >= 2:
+                flags.append(f"retry{n_retries}")
+            if trimmed:
+                flags.append("trim")
+            flag_s = f"\t{','.join(flags)}" if flags else ""
+            print(f"{path.name}\tconf={conf:.3f}\tboxes={len(digit_rows)}{flag_s}\t{nid_value}\t{stitched}")
 
     print(f"ID crops {n_det}/{len(images)} | decoded {n_nid} | {args.out}")
 
