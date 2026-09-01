@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
+from itertools import combinations
 from typing import Any
 
 import cv2
 import numpy as np
+
+from decode_nid import to_western_digits
 
 # Paddle 3.3.x + PP-OCRv5 crashes on CPU oneDNN/PIR; force off before importing paddleocr.
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
@@ -16,6 +20,7 @@ os.environ["FLAGS_enable_pir_api"] = "0"
 
 MIN_CROP_HEIGHT = 32
 LTR_FIELD_NAMES = frozenset({"ExpDate", "IssueDate", "Serial_Num"})
+DATE_FIELD_NAMES = frozenset({"ExpDate", "IssueDate"})
 LINE_Y_TOLERANCE = 0.5
 
 _ocr_readers: dict[str, FieldOcrReader] = {}
@@ -88,6 +93,84 @@ def upsample_tiny_crop(image: np.ndarray, min_height: int = MIN_CROP_HEIGHT) -> 
     return cv2.resize(image, (new_width, min_height), interpolation=cv2.INTER_CUBIC)
 
 
+def _is_valid_ymd_digits(digits8: str) -> bool:
+    if len(digits8) != 8 or not digits8.isdigit():
+        return False
+    year = int(digits8[:4])
+    month = int(digits8[4:6])
+    day = int(digits8[6:8])
+    return 1900 <= year <= 2099 and 1 <= month <= 12 and 1 <= day <= 31
+
+
+def _format_ymd_digits(digits8: str) -> str:
+    return f"{digits8[:4]}/{digits8[4:6]}/{digits8[6:8]}"
+
+
+def _try_slash_as_one_date(digits: str) -> str | None:
+    """Recover YYYY/MM/DD when OCR reads '/' as '1'."""
+    patterns = (
+        r"(\d{4})1(\d{2})1(\d{2})",  # both slashes: 2028109127 -> 2028/09/27
+        r"(\d{4})1(\d{2})(\d{2})",   # after year:    202810927  -> 2028/09/27
+        r"(\d{4})(\d{2})1(\d{2})",   # before day:    202809127  -> 2028/09/27
+    )
+    for pattern in patterns:
+        match = re.fullmatch(pattern, digits)
+        if not match:
+            continue
+        year, month, day = match.groups()
+        compact = f"{year}{month}{day}"
+        if _is_valid_ymd_digits(compact):
+            return _format_ymd_digits(compact)
+    return None
+
+
+def normalize_card_date_text(text: str) -> str:
+    """Convert Eastern digits and format Egyptian card dates as YYYY/MM/DD."""
+    if not text or not str(text).strip():
+        return text or ""
+
+    western = to_western_digits(str(text).strip())
+
+    separated = re.search(
+        r"(\d{4})\s*[/.\-]\s*(\d{1,2})\s*[/.\-]\s*(\d{1,2})",
+        western,
+    )
+    if separated:
+        year, month, day = (int(part) for part in separated.groups())
+        if 1900 <= year <= 2099 and 1 <= month <= 12 and 1 <= day <= 31:
+            return f"{year:04d}/{month:02d}/{day:02d}"
+
+    parts = re.findall(r"\d+", western)
+    if len(parts) == 3 and sum(len(part) for part in parts) == 8:
+        year, month, day = (int(part) for part in parts)
+        if 1900 <= year <= 2099 and 1 <= month <= 12 and 1 <= day <= 31:
+            return f"{year:04d}/{month:02d}/{day:02d}"
+
+    digits = re.sub(r"\D+", "", western)
+    slash_fixed = _try_slash_as_one_date(digits)
+    if slash_fixed is not None:
+        return slash_fixed
+
+    if len(digits) == 8 and _is_valid_ymd_digits(digits):
+        return _format_ymd_digits(digits)
+
+    for start in range(len(digits) - 7):
+        chunk = digits[start : start + 8]
+        if _is_valid_ymd_digits(chunk):
+            return _format_ymd_digits(chunk)
+
+    extra = len(digits) - 8
+    if 1 <= extra <= 3:
+        for drop_indexes in combinations(range(len(digits)), extra):
+            candidate = "".join(
+                digit for index, digit in enumerate(digits) if index not in drop_indexes
+            )
+            if _is_valid_ymd_digits(candidate):
+                return _format_ymd_digits(candidate)
+
+    return western
+
+
 def _extract_ocr_payload(result: Any) -> tuple[list[str], list[float], list[np.ndarray]]:
     if result is None:
         return [], [], []
@@ -134,6 +217,8 @@ class FieldOcrReader:
             polys,
             right_to_left=right_to_left,
         )
+        if field_name in DATE_FIELD_NAMES and stitched:
+            stitched = normalize_card_date_text(stitched)
         n_lines = 0 if not stitched else len(stitched.splitlines())
         return FieldOcrResult(text=stitched, ocr_conf=mean_conf, n_lines=n_lines)
 

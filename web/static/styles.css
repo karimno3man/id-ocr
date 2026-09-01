@@ -51,6 +51,17 @@ body {
   font-size: 0.95rem;
 }
 
+.demo-notice {
+  margin: 1rem 2rem 0;
+  padding: 0.75rem 1rem;
+  background: #fff8e6;
+  border: 1px solid #ffd966;
+  border-radius: var(--radius);
+  color: #664d00;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 .container {
   max-width: 1100px;
   margin: 0 auto;
@@ -154,6 +165,29 @@ body {
   opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.btn-secondary {
+  border: 2px solid var(--ischool-blue);
+  border-radius: 999px;
+  padding: 0.8rem 1.75rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ischool-blue);
+  background: var(--card);
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s, background 0.15s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #eef4ff;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .status {
@@ -309,6 +343,38 @@ body {
 
 .helper.info {
   color: var(--ischool-blue);
+}
+
+.nid-decode-panel {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--border);
+}
+
+.nid-decode-panel.hidden {
+  display: none;
+}
+
+.nid-decode-title {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.nid-decode-grid {
+  margin-top: 0;
+}
+
+.field-readonly input {
+  background: #f0f4fa;
+  color: var(--text);
+  cursor: default;
+}
+
+.field-readonly input:focus {
+  box-shadow: none;
+  border-color: var(--border);
 }
 
 @media (max-width: 768px) {

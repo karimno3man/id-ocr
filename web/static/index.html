@@ -25,6 +25,10 @@
       </div>
     </header>
 
+    <p class="demo-notice" role="note">
+      Public demo — use sample or redacted card images only. Do not upload real national ID cards.
+    </p>
+
     <main class="container">
       <section class="upload-row">
         <label class="upload-card" id="front-drop">
@@ -49,6 +53,9 @@
       <div class="actions">
         <button type="button" id="extract-btn" class="btn-primary" disabled>
           Extract fields
+        </button>
+        <button type="button" id="submit-btn" class="btn-secondary" disabled>
+          Submit to spreadsheet
         </button>
         <p id="status" class="status" aria-live="polite"></p>
       </div>
@@ -115,7 +122,60 @@
             <div class="field field-wide" data-field="ID">
               <label for="ID">National ID (14 digits)</label>
               <input id="ID" name="ID" type="text" dir="ltr" inputmode="numeric" />
-              <span class="helper" id="nid-decode"></span>
+              <span class="helper" id="id-helper"></span>
+            </div>
+          </div>
+          <div id="nid-decode-panel" class="nid-decode-panel hidden" aria-live="polite">
+            <h3 class="nid-decode-title">Decoded from ID</h3>
+            <div class="field-grid nid-decode-grid">
+              <div class="field field-readonly" data-nid-field="birth_date">
+                <label for="nid-birth_date">Birth date</label>
+                <input id="nid-birth_date" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="birth_year">
+                <label for="nid-birth_year">Birth year</label>
+                <input id="nid-birth_year" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="birth_month">
+                <label for="nid-birth_month">Birth month</label>
+                <input id="nid-birth_month" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="birth_day">
+                <label for="nid-birth_day">Birth day</label>
+                <input id="nid-birth_day" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="governorate">
+                <label for="nid-governorate">Governorate</label>
+                <input id="nid-governorate" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="governorate_code">
+                <label for="nid-governorate_code">Governorate code</label>
+                <input id="nid-governorate_code" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="century_digit">
+                <label for="nid-century_digit">Century digit</label>
+                <input id="nid-century_digit" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="serial">
+                <label for="nid-serial">Serial</label>
+                <input id="nid-serial" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="gender">
+                <label for="nid-gender">Gender (from ID)</label>
+                <input id="nid-gender" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="check_digit">
+                <label for="nid-check_digit">Check digit</label>
+                <input id="nid-check_digit" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly" data-nid-field="is_valid_structure">
+                <label for="nid-is_valid_structure">Valid structure</label>
+                <input id="nid-is_valid_structure" type="text" readonly tabindex="-1" value="—" />
+              </div>
+              <div class="field field-readonly field-wide" data-nid-field="issues">
+                <label for="nid-issues">Issues</label>
+                <input id="nid-issues" type="text" readonly tabindex="-1" value="—" />
+              </div>
             </div>
           </div>
         </section>
@@ -191,6 +251,6 @@
       </form>
     </main>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=3"></script>
   </body>
 </html>
