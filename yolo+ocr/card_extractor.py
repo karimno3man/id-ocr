@@ -20,6 +20,7 @@ from digit_nid import (
     snapshot_digit_weights,
 )
 from field_ocr import get_field_ocr_reader, read_field_crop
+from parse_governorate import apply_governorate_split
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -447,6 +448,7 @@ class CardExtractor:
         back_fields = self.extract_from_image(back, source="back") if back is not None else {}
         merged = merge_field_maps(front_fields, back_fields, self.class_names)
         fields, meta = merged_fields_to_response(merged)
+        fields, meta = apply_governorate_split(fields, meta)
         return fields, meta, front_fields, back_fields
 
     def field_result_to_dict(self, result: FieldResult, crop_path: str | None = None) -> dict[str, Any]:

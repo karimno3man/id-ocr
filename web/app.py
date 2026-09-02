@@ -57,6 +57,7 @@ SHEET_FIELD_COLUMNS = [
     "Serial_Num",
     "Add1",
     "Add2",
+    "Governorate",
     "Job1",
     "Job2",
     "Front",

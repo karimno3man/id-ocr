@@ -4,7 +4,7 @@
  * Setup:
  * 1. Create a Google Sheet with row 1 headers (exact names):
  *    First_Name, Last_Name, HusbandName, Gender, Religion, Status, ID,
- *    IssueDate, ExpDate, Serial_Num, Add1, Add2, Job1, Job2, Front, Back,
+ *    IssueDate, ExpDate, Serial_Num, Add1, Add2, Governorate, Job1, Job2, Front, Back,
  *    submitted_at
  * 2. Extensions → Apps Script → paste this file → Save
  * 3. Set WEBHOOK_TOKEN below (optional) to match GOOGLE_SHEETS_TOKEN on the server
@@ -27,6 +27,7 @@ const FIELD_COLUMNS = [
   "Serial_Num",
   "Add1",
   "Add2",
+  "Governorate",
   "Job1",
   "Job2",
   "Front",

@@ -75,8 +75,9 @@ body {
 }
 
 .upload-card {
-  display: block;
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .upload-inner {
@@ -94,6 +95,26 @@ body {
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+}
+
+.btn-scan {
+  border: 2px solid var(--ischool-blue);
+  border-radius: 999px;
+  padding: 0.65rem 1.25rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ischool-blue);
+  background: var(--card);
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+  align-self: center;
+}
+
+.btn-scan:hover {
+  transform: translateY(-1px);
+  background: #eef4ff;
 }
 
 .upload-card:hover .upload-inner,
@@ -375,6 +396,273 @@ body {
 .field-readonly input:focus {
   box-shadow: none;
   border-color: var(--border);
+}
+
+.hidden {
+  display: none !important;
+}
+
+body.scanner-open {
+  overflow: hidden;
+}
+
+/* --- ID card scanner modal --- */
+
+.scanner-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(10, 20, 40, 0.95);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+.scanner-shell {
+  position: relative;
+  width: min(100%, 520px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 0;
+  flex: 1;
+  max-height: 100dvh;
+  padding-top: 2.5rem;
+}
+
+.scanner-close {
+  position: absolute;
+  top: 0.25rem;
+  right: 0;
+  z-index: 2;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.scanner-instruction {
+  margin: 0;
+  padding: 0.5rem 1.25rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text);
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.scanner-feedback {
+  margin: 0;
+  padding: 0.35rem 1rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.scanner-feedback.is-ready {
+  color: #7dffb0;
+}
+
+.scanner-live,
+.scanner-preview-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-height: 0;
+}
+
+.scanner-viewport {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  max-height: calc(100dvh - 180px);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+#scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.scanner-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.scanner-mask-row {
+  flex: 1;
+  min-height: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.scanner-mask-middle {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.scanner-mask-side {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.scanner-frame {
+  position: relative;
+  width: min(100%, calc(68dvh * 1.586), 92vw);
+  aspect-ratio: 1.586;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+  transition: box-shadow 0.2s;
+}
+
+.scanner-frame.is-ready {
+  box-shadow: 0 0 0 2px rgba(80, 220, 120, 0.9);
+}
+
+.scanner-frame.is-ready .scanner-corner {
+  border-color: #50dc78;
+}
+
+.scanner-corner {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-color: var(--ischool-blue);
+  border-style: solid;
+  transition: border-color 0.2s;
+}
+
+.scanner-corner-tl {
+  top: -2px;
+  left: -2px;
+  border-width: 5px 0 0 5px;
+}
+
+.scanner-corner-tr {
+  top: -2px;
+  right: -2px;
+  border-width: 5px 5px 0 0;
+}
+
+.scanner-corner-bl {
+  bottom: -2px;
+  left: -2px;
+  border-width: 0 0 5px 5px;
+}
+
+.scanner-corner-br {
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 5px 5px 0;
+}
+
+.scanner-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0;
+  flex-shrink: 0;
+}
+
+.scanner-actions-row {
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-capture {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.btn-capture:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.btn-capture:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-capture:disabled .btn-capture-ring {
+  background: #ccc;
+}
+
+.btn-capture-ring {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff;
+  display: block;
+  transition: background 0.15s;
+}
+
+.scanner-preview-status {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: center;
+  width: 100%;
+}
+
+.scanner-preview-status.is-ok {
+  background: rgba(80, 220, 120, 0.2);
+  color: #7dffb0;
+}
+
+.scanner-preview-status.is-bad {
+  background: rgba(255, 128, 0, 0.2);
+  color: #ffb366;
+}
+
+.scanner-preview-img {
+  width: 100%;
+  max-height: calc(100dvh - 240px);
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+  display: block;
+}
+
+#scanner-use:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#scanner-retry.is-highlight {
+  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.5);
 }
 
 @media (max-width: 768px) {
